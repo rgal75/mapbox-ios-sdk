@@ -16,7 +16,7 @@
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 // AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 // IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-// ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+// ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER  CONTRIBUTORS BE
 // LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
 // CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
 // SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
@@ -43,6 +43,9 @@
 
     self.retryCount = RMAbstractWebMapSourceDefaultRetryCount;
     self.requestTimeoutSeconds = RMAbstractWebMapSourceDefaultWaitSeconds;
+    self.tileDownloadCondition = ^BOOL {
+        return YES;
+    };
 
     return self;
 }
@@ -104,11 +107,14 @@
             {
                 NSData *tileData = nil;
 
-                for (NSUInteger try = 0; tileData == nil && try < self.retryCount; ++try)
+                if (self.tileDownloadCondition())
                 {
-                    NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:currentURL];
-                    [request setTimeoutInterval:(self.requestTimeoutSeconds / (CGFloat)self.retryCount)];
-                    tileData = [NSURLConnection sendBrandedSynchronousRequest:request returningResponse:nil error:nil];
+                    for (NSUInteger try = 0; tileData == nil && try < self.retryCount; ++try)
+                    {
+                        NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:currentURL];
+                        [request setTimeoutInterval:(self.requestTimeoutSeconds / (CGFloat)self.retryCount)];
+                        tileData = [NSURLConnection sendBrandedSynchronousRequest:request returningResponse:nil error:nil];
+                    }
                 }
 
                 if (tileData)
@@ -150,7 +156,7 @@
             }
         }
     }
-    else
+    else if (self.tileDownloadCondition())
     {
         for (NSUInteger try = 0; image == nil && try < self.retryCount; ++try)
         {
